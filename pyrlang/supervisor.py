@@ -16,6 +16,7 @@ from typing import Callable, List, Tuple, Dict
 
 from pyrlang.process import Process
 from pyrlang.gen.server import GenServer
+from pyrlang.gen.decorators import call as main_call
 from pyrlang.util import as_str
 from term.atom import Atom
 from term.pid import Pid
@@ -30,6 +31,26 @@ CHILD_SPEC_REF = {
 }
 
 
+def call(name, msg_len=2):
+    """ specific decorator function
+
+        Handle the decorator where we expect a tuple of a specific size and
+        the first item being an atom with specific name
+    """
+    atom = Atom(name)
+
+    def pattern_match(msg):
+        if type(msg) != tuple:
+            return False
+        if len(msg) != msg_len:
+            return False
+        if msg[0] != atom:
+            return False
+        return True
+
+    return main_call(pattern_match)
+
+
 def _is_child_spec(child_spec):
     if not isinstance(child_spec, dict):
         return False
@@ -41,7 +62,7 @@ def _is_child_spec(child_spec):
         ])
 
 
-class Supervisor(Process):
+class Supervisor(GenServer):
     def __init__(self, child_specs: list, sup_flags: dict):
         self.state = 'init'
         super().__init__()
@@ -50,9 +71,18 @@ class Supervisor(Process):
             if _is_child_spec(child_spec):
                 self.start_child(child_spec)
 
+    # Process graceful exit
+    @call('exit')
+    def sv_exit(self, msg):
+        pass
+
+    # Process dead
+    @call('exit2')
+    def sv_exit2(self, msg):
+        pass
+
     def start_child(self, child_spec):
-        if not child_spec['id'] in self._childs:
-            self._childs[child_spec['id']] = child_spec
+        self._start_child(child_spec)
 
     def stop_child(self, child_id):
         pass
