@@ -93,7 +93,7 @@ class Supervisor(GenServer):
     def terminate_child(self, child_id):
         pass
 
-    def which_childern(self):
+    def which_children(self):
         pass
 
     def get_childspec(self):
